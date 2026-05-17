@@ -46,8 +46,7 @@
       /* EL TRUCO PARA QUE COINCIDAN: 
            Usamos width/height 100% y object-fit cover en ambos. 
            El scale(1.15) elimina las franjas negras en móviles. */
-      video,
-      #fake-poster {
+      video {
         position: absolute;
         top: 0;
         left: 0;
@@ -58,14 +57,6 @@
         object-position: center;
         transform: scale(1.15);
         display: block;
-      }
-
-      #fake-poster {
-        z-index: 1002;
-        transition: opacity 0.3s ease;
-      }
-
-      video {
         z-index: 1001;
       }
 
@@ -75,12 +66,13 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 150px;
-        height: 150px;
+        width: 250px; /* Área ampliada para facilitar el toque en móviles */
+        height: 250px; /* Área ampliada para facilitar el toque en móviles */
         border-radius: 50%;
         z-index: 1010;
         cursor: pointer;
-        /* background: rgba(255,0,0,0.2); <-- Descomenta para ver dónde tocar */
+        -webkit-tap-highlight-color: transparent; /* Evita el destello gris en móviles al tocar */
+        /* background: rgba(255,0,0,0.2); <-- Descomenta para ver el área real clickable */
       }
 
       /* MONOGRAMA (EL TEXTO DORADO) */
@@ -118,15 +110,9 @@
   </head>
   <body>
     <div id="intro-container">
-      <video id="wedding-video" playsinline muted preload="auto">
+      <video id="wedding-video" playsinline muted preload="auto" poster="https://i.postimg.cc/GpVhqjVP/primer-fotograma.png">
         <source src="https://files.catbox.moe/j7xt4t.mp4" type="video/mp4" />
       </video>
-
-      <img
-        id="fake-poster"
-        src="https://i.postimg.cc/GpVhqjVP/primer-fotograma.png"
-        alt="Sobre"
-      />
 
       <div id="dynamic-monogram"></div>
 
@@ -143,36 +129,54 @@
       const seal = document.getElementById('seal-hotspot');
       const intro = document.getElementById('intro-container');
       const main = document.getElementById('main-content');
-      const fakePoster = document.getElementById('fake-poster');
       const monogram = document.getElementById('dynamic-monogram');
 
+      let isOpened = false;
+      let introFinished = false;
+
       function openEnvelope() {
+        if (isOpened) return;
+        isOpened = true;
+
         seal.style.display = 'none';
         if (monogram) monogram.classList.add('monogram-fade-out');
-        video.play();
+        
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.warn("El vídeo no pudo reproducirse automáticamente:", error);
+            // Si el vídeo falla por restricciones del móvil, saltamos directamente a la web
+            finishIntro();
+          });
+        }
       }
 
-      seal.addEventListener('click', openEnvelope);
-      seal.addEventListener('touchstart', openEnvelope);
-
-      video.addEventListener('timeupdate', function () {
-        if (video.currentTime > 0.1) {
-          fakePoster.style.opacity = '0';
-          setTimeout(() => {
-            fakePoster.style.display = 'none';
-          }, 300);
-        }
-      });
-
-      video.onended = function () {
+      function finishIntro() {
+        if (introFinished) return;
+        introFinished = true;
         main.classList.remove('hidden');
-        intro.style.transition = 'opacity 0.8s ease';
+        intro.style.transition = 'opacity 0.25s ease'; // Transición súper rápida (250ms)
         intro.style.opacity = '0';
         setTimeout(() => {
           intro.style.display = 'none';
           document.body.style.overflow = 'auto';
-        }, 800);
-      };
+        }, 250);
+      }
+
+      // EL TRUCO PARA LA VELOCIDAD:
+      // No esperamos a que el vídeo termine naturalmente. 
+      // Saltamos a la web 0.9 segundos antes de que acabe, justo cuando el papel sale del sobre.
+      video.addEventListener('timeupdate', function () {
+        if (video.duration && video.currentTime >= video.duration - 0.9) {
+          finishIntro();
+        }
+      });
+
+      // Eventos ajustados para garantizar máxima respuesta en móviles
+      seal.addEventListener('click', openEnvelope);
+      seal.addEventListener('touchstart', openEnvelope, { passive: true });
+
+      video.onended = finishIntro;
     </script>
 
     <!-- AQUÍ EMPIEZA TU CÓDIGO REACT -->
@@ -812,11 +816,27 @@
         const [hasScrolled, setHasScrolled] = useState(false);
 
         useEffect(() => {
+          const scrollBox = document.getElementById('main-content');
+          
           const handleScroll = () => {
-            setHasScrolled(window.scrollY > 50);
+            // Evaluamos tanto si scrollea la ventana como si lo hace el contenedor principal
+            const scrollPos = scrollBox ? scrollBox.scrollTop : window.scrollY;
+            setHasScrolled(scrollPos > 50);
           };
-          window.addEventListener('scroll', handleScroll);
-          return () => window.removeEventListener('scroll', handleScroll);
+
+          if (scrollBox) {
+            scrollBox.addEventListener('scroll', handleScroll);
+          } else {
+            window.addEventListener('scroll', handleScroll);
+          }
+
+          return () => {
+            if (scrollBox) {
+              scrollBox.removeEventListener('scroll', handleScroll);
+            } else {
+              window.removeEventListener('scroll', handleScroll);
+            }
+          };
         }, []);
 
         useEffect(() => {
@@ -1201,7 +1221,7 @@
               <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-[#FAF9F6] to-transparent z-20 pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-full h-8 md:h-12 bg-gradient-to-t from-[#FAF9F6] to-transparent z-20 pointer-events-none" />
 
-              {/* Indicador de Scroll */}
+              {/* Indicador de Scroll Original sin bote ni fondo */}
               <div
                 className={`md:hidden absolute bottom-8 left-0 w-full flex justify-center z-30 transition-opacity duration-500 ${
                   hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-80'
