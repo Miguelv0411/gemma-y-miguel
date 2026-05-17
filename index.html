@@ -114,12 +114,6 @@
         <source src="https://files.catbox.moe/j7xt4t.mp4" type="video/mp4" />
       </video>
 
-      <!-- Música de fondo para el sobre -->
-      <audio id="intro-music" loop preload="auto">
-        <!-- Puedes cambiar el enlace del src por tu propia canción en MP3 -->
-        <source src="https://cdn.pixabay.com/download/audio/2022/02/07/audio_f5e61d8b67.mp3" type="audio/mpeg" />
-      </audio>
-
       <div id="dynamic-monogram"></div>
 
       <div id="seal-hotspot"></div>
@@ -136,41 +130,8 @@
       const intro = document.getElementById('intro-container');
       const main = document.getElementById('main-content');
       const monogram = document.getElementById('dynamic-monogram');
-      const introMusic = document.getElementById('intro-music');
 
       let isOpened = false;
-      let musicStarted = false;
-      let introFinished = false;
-
-      // Iniciamos la música al primer toque en la pantalla
-      function startMusic() {
-        if (!musicStarted && !isOpened && introMusic) {
-          const playPromise = introMusic.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              musicStarted = true;
-            }).catch(() => {});
-          }
-        }
-      }
-
-      document.addEventListener('click', startMusic, { once: true });
-      document.addEventListener('touchstart', startMusic, { once: true, passive: true });
-
-      function fadeOutMusic() {
-        if (!introMusic) return;
-        let vol = introMusic.volume;
-        const fade = setInterval(() => {
-          if (vol > 0.1) {
-            vol -= 0.1;
-            introMusic.volume = vol;
-          } else {
-            clearInterval(fade);
-            introMusic.pause();
-            introMusic.volume = 0;
-          }
-        }, 50); // Apagado rápido
-      }
 
       function openEnvelope() {
         if (isOpened) return;
@@ -178,8 +139,6 @@
 
         seal.style.display = 'none';
         if (monogram) monogram.classList.add('monogram-fade-out');
-        
-        fadeOutMusic();
         
         const playPromise = video.play();
         if (playPromise !== undefined) {
@@ -192,25 +151,14 @@
       }
 
       function finishIntro() {
-        if (introFinished) return;
-        introFinished = true;
         main.classList.remove('hidden');
-        intro.style.transition = 'opacity 0.25s ease'; // Transición súper rápida (250ms)
+        intro.style.transition = 'opacity 0.8s ease';
         intro.style.opacity = '0';
         setTimeout(() => {
           intro.style.display = 'none';
           document.body.style.overflow = 'auto';
-        }, 250);
+        }, 800);
       }
-
-      // EL TRUCO PARA LA VELOCIDAD:
-      // No esperamos a que el vídeo termine naturalmente. 
-      // Saltamos a la web 0.9 segundos antes de que acabe, justo cuando el papel sale del sobre.
-      video.addEventListener('timeupdate', function () {
-        if (video.duration && video.currentTime >= video.duration - 0.9) {
-          finishIntro();
-        }
-      });
 
       // Eventos ajustados para garantizar máxima respuesta en móviles
       seal.addEventListener('click', openEnvelope);
