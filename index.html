@@ -53,16 +53,17 @@
         left: 0;
         width: 100%;
         height: 100%;
-        min-height: 100vh; /* Fuerza a rellenar incluso si la barra móvil cambia */
         object-fit: cover;
-        object-position: center;
+        object-position: center center;
         transform: scale(1.15);
+        transform-origin: center center;
         display: block;
       }
 
       #fake-poster {
         z-index: 1002;
         transition: opacity 0.3s ease;
+        pointer-events: none; /* Evita que la imagen intercepte el clic */
       }
 
       video {
@@ -147,33 +148,60 @@
       const fakePoster = document.getElementById('fake-poster');
       const monogram = document.getElementById('dynamic-monogram');
 
-      function openEnvelope() {
-        seal.style.display = 'none';
-        if (monogram) monogram.classList.add('monogram-fade-out');
-        video.play();
+      let isOpened = false;
+      let introFinished = false;
+
+      function finishIntro() {
+        if (introFinished) return;
+        introFinished = true;
+        main.classList.remove('hidden');
+        intro.style.transition = 'opacity 0.25s ease'; // Transición súper rápida (250ms)
+        intro.style.opacity = '0';
+        setTimeout(() => {
+          intro.style.display = 'none';
+          document.body.style.overflow = 'auto';
+        }, 250);
       }
 
+      function openEnvelope(e) {
+        if (e && e.cancelable) e.preventDefault(); // Evita clics fantasma en móviles
+        if (isOpened) return;
+        isOpened = true;
+
+        seal.style.display = 'none';
+        if (monogram) monogram.classList.add('monogram-fade-out');
+        
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.warn("Autoplay prevenido por el navegador:", error);
+            finishIntro(); // Si el vídeo falla por permisos, mostramos la web
+          });
+        }
+      }
+
+      // Añadimos { passive: false } para asegurarnos de que preventDefault se ejecute si es necesario
       seal.addEventListener('click', openEnvelope);
-      seal.addEventListener('touchstart', openEnvelope);
+      seal.addEventListener('touchstart', openEnvelope, { passive: false });
 
       video.addEventListener('timeupdate', function () {
-        if (video.currentTime > 0.1) {
+        // Hacemos desaparecer la funda suavemente solo cuando el vídeo ya ha empezado a rodar sin fallos
+        if (video.currentTime > 0.1 && fakePoster.style.display !== 'none') {
           fakePoster.style.opacity = '0';
           setTimeout(() => {
             fakePoster.style.display = 'none';
           }, 300);
         }
+
+        // EL TRUCO PARA LA VELOCIDAD:
+        // No esperamos a que el vídeo termine naturalmente. 
+        // Saltamos a la web 0.9 segundos antes de que acabe, justo cuando el papel sale del sobre.
+        if (video.duration && video.currentTime >= video.duration - 0.9) {
+          finishIntro();
+        }
       });
 
-      video.onended = function () {
-        main.classList.remove('hidden');
-        intro.style.transition = 'opacity 0.8s ease';
-        intro.style.opacity = '0';
-        setTimeout(() => {
-          intro.style.display = 'none';
-          document.body.style.overflow = 'auto';
-        }, 800);
-      };
+      video.onended = finishIntro;
     </script>
 
     <!-- AQUÍ EMPIEZA TU CÓDIGO REACT -->
@@ -226,7 +254,7 @@
 
       // --- CONFIGURACIÓN GOOGLE SHEETS ---
       const GOOGLE_SCRIPT_URL =
-        'https://script.google.com/macros/s/AKfycbxi7cLkUVTmsICd5cskyth3OSeaJ5T25nIE-y9p8nLZu54wjDMAgbBylUXbd5g0zwnWEg/exec';
+        'https://script.google.com/macros/s/AKfycbw5_Se1BvC3mAEJg9v2nKKpgDCaD4WtXHXxbb-oPqgGqB0xkVQOefMfsT7dX7SEkWtI/exec';
 
       // --- UTILS y HOOKS ---
 
@@ -1218,7 +1246,7 @@
               <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-[#FAF9F6] to-transparent z-20 pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-full h-8 md:h-12 bg-gradient-to-t from-[#FAF9F6] to-transparent z-20 pointer-events-none" />
 
-              {/* Indicador de Scroll */}
+              {/* Indicador de Scroll Original sin bote ni fondo */}
               <div
                 className={`md:hidden absolute bottom-8 left-0 w-full flex justify-center z-30 transition-opacity duration-500 ${
                   hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-80'
