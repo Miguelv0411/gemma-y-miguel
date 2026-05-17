@@ -75,11 +75,12 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 150px;
-        height: 150px;
+        width: 500px; /* Área máxima gigante para asegurar el toque en móviles */
+        height: 500px; 
         border-radius: 50%;
         z-index: 1010;
         cursor: pointer;
+        -webkit-tap-highlight-color: transparent; /* Clic instantáneo y limpio en móvil */
         /* background: rgba(255,0,0,0.2); <-- Descomenta para ver dónde tocar */
       }
 
@@ -1217,22 +1218,20 @@
               <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-[#FAF9F6] to-transparent z-20 pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-full h-8 md:h-12 bg-gradient-to-t from-[#FAF9F6] to-transparent z-20 pointer-events-none" />
 
-              {/* Indicador de Scroll Mejorado */}
+              {/* Indicador de Scroll */}
               <div
-                className={`md:hidden absolute bottom-6 left-0 w-full flex justify-center z-30 transition-all duration-700 ${
-                  hasScrolled ? 'opacity-0 translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'
+                className={`md:hidden absolute bottom-8 left-0 w-full flex justify-center z-30 transition-opacity duration-500 ${
+                  hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-80'
                 }`}
               >
-                <div className="flex flex-col items-center gap-2 bg-white/60 backdrop-blur-md px-5 py-2.5 rounded-full shadow-sm border border-white/40">
-                  <span className="text-[9px] uppercase tracking-[0.4em] font-bold text-stone-700">
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-[9px] uppercase tracking-[0.4em] font-bold text-stone-500">
                     Desliza hacia abajo
                   </span>
-                  <div className="animate-bounce mt-1">
-                    <ArrowRight
-                      size={14}
-                      className="text-stone-600 transform rotate-90"
-                    />
-                  </div>
+                  <ArrowRight
+                    size={14}
+                    className="text-stone-400 transform rotate-90"
+                  />
                 </div>
               </div>
             </section>
