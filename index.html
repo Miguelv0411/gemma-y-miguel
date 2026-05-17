@@ -831,6 +831,7 @@
         const [view, setView] = useState('landing');
         const [rsvps, setRsvps] = useState([]);
         const [formStatus, setFormStatus] = useState('idle');
+        const [asistira, setAsistira] = useState('si');
         const [transporteSeleccionado, setTransporteSeleccionado] =
           useState('bus');
         const [adminPass, setAdminPass] = useState('');
@@ -925,7 +926,12 @@
             data.append(pair[0], pair[1]);
           }
           data.append('timestamp', new Date().toISOString());
-          if (transporteSeleccionado !== 'bus') {
+          
+          if (asistira === 'no') {
+            data.append('invitados', '0');
+            data.append('transporte', '-');
+            data.append('recorrido', '-');
+          } else if (transporteSeleccionado !== 'bus') {
             data.append('recorrido', '-');
           }
 
@@ -938,6 +944,7 @@
 
             setFormStatus('success');
             formEl.reset();
+            setAsistira('si');
           } catch (error) {
             console.error('Error al enviar:', error);
             setFormStatus('error');
@@ -1953,6 +1960,8 @@
                           <div className="relative">
                             <select
                               name="asistira"
+                              value={asistira}
+                              onChange={(e) => setAsistira(e.target.value)}
                               className="w-full bg-transparent border-b border-stone-700 py-3 text-base md:text-lg focus:outline-none focus:border-amber-500 transition-colors text-white appearance-none cursor-pointer"
                             >
                               <option value="si" className="text-stone-900">
@@ -1968,112 +1977,116 @@
                             />
                           </div>
                         </div>
-                        <div className="group">
-                          <label className="block text-[10px] uppercase tracking-[0.2em] text-stone-500 mb-2 group-focus-within:text-amber-500 transition-colors">
-                            Invitados
-                          </label>
-                          <input
-                            name="invitados"
-                            type="number"
-                            min="1"
-                            defaultValue="1"
-                            className="w-full bg-transparent border-b border-stone-700 py-3 text-base md:text-lg focus:outline-none focus:border-amber-500 transition-colors text-white"
-                          />
-                        </div>
-                      </div>
-                      <div className="group">
-                        <label className="block text-[10px] uppercase tracking-[0.2em] text-stone-500 mb-3 group-focus-within:text-amber-500 transition-colors">
-                          Transporte
-                        </label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <label
-                            className={`flex items-center gap-3 cursor-pointer group/option p-3 rounded-lg border transition-colors ${
-                              transporteSeleccionado === 'bus'
-                                ? 'border-amber-500 bg-amber-500/10'
-                                : 'border-stone-800 hover:border-stone-600'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="transporte"
-                              value="bus"
-                              checked={transporteSeleccionado === 'bus'}
-                              onChange={(e) =>
-                                setTransporteSeleccionado(e.target.value)
-                              }
-                              className="appearance-none w-4 h-4 border border-stone-500 rounded-full checked:bg-amber-500 checked:border-amber-500 transition-all"
-                            />
-                            <span
-                              className={`${
-                                transporteSeleccionado === 'bus'
-                                  ? 'text-white'
-                                  : 'text-stone-400 group-hover/option:text-stone-200'
-                              } transition-colors text-sm font-medium`}
-                            >
-                              Autobús
-                            </span>
-                          </label>
-                          <label
-                            className={`flex items-center gap-3 cursor-pointer group/option p-3 rounded-lg border transition-colors ${
-                              transporteSeleccionado === 'propio'
-                                ? 'border-amber-500 bg-amber-500/10'
-                                : 'border-stone-800 hover:border-stone-600'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="transporte"
-                              value="propio"
-                              checked={transporteSeleccionado === 'propio'}
-                              onChange={(e) =>
-                                setTransporteSeleccionado(e.target.value)
-                              }
-                              className="appearance-none w-4 h-4 border border-stone-500 rounded-full checked:bg-amber-500 checked:border-amber-500 transition-all"
-                            />
-                            <span
-                              className={`${
-                                transporteSeleccionado === 'propio'
-                                  ? 'text-white'
-                                  : 'text-stone-400 group-hover/option:text-stone-200'
-                              } transition-colors text-sm font-medium`}
-                            >
-                              Vehículo Propio
-                            </span>
-                          </label>
-                        </div>
-                        {transporteSeleccionado === 'bus' && (
-                          <div className="mt-4 p-4 md:p-5 bg-black/20 rounded-xl border border-white/10 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <label className="block text-[10px] uppercase tracking-[0.2em] text-stone-400 mb-3">
-                              ¿Recorrido Completo?
+                        {asistira === 'si' && (
+                          <div className="group">
+                            <label className="block text-[10px] uppercase tracking-[0.2em] text-stone-500 mb-2 group-focus-within:text-amber-500 transition-colors">
+                              Invitados
                             </label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <label className="flex items-center gap-3 cursor-pointer group/sub p-2 rounded-lg hover:bg-white/5 transition-colors">
-                                <input
-                                  type="radio"
-                                  name="recorrido"
-                                  value="completo"
-                                  defaultChecked
-                                  className="appearance-none w-3.5 h-3.5 border border-stone-500 rounded-full checked:bg-amber-500 checked:border-amber-500 transition-all"
-                                />
-                                <span className="text-stone-400 group-hover/sub:text-stone-200 text-sm">
-                                  Sí (Ida y Vuelta)
-                                </span>
-                              </label>
-                              <label className="flex items-center gap-3 cursor-pointer group/sub p-2 rounded-lg hover:bg-white/5 transition-colors">
-                                <input
-                                  type="radio"
-                                  name="recorrido"
-                                  value="parcial"
-                                  className="appearance-none w-3.5 h-3.5 border border-stone-500 rounded-full checked:bg-amber-500 checked:border-amber-500 transition-all"
-                                />
-                                <span className="text-stone-400 group-hover/sub:text-stone-200 text-sm">
-                                  No (Solo un tramo)
-                                </span>
-                              </label>
-                            </div>
+                            <input
+                              name="invitados"
+                              type="number"
+                              min="1"
+                              defaultValue="1"
+                              className="w-full bg-transparent border-b border-stone-700 py-3 text-base md:text-lg focus:outline-none focus:border-amber-500 transition-colors text-white"
+                            />
                           </div>
                         )}
                       </div>
+                      {asistira === 'si' && (
+                        <div className="group">
+                          <label className="block text-[10px] uppercase tracking-[0.2em] text-stone-500 mb-3 group-focus-within:text-amber-500 transition-colors">
+                            Transporte
+                          </label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label
+                              className={`flex items-center gap-3 cursor-pointer group/option p-3 rounded-lg border transition-colors ${
+                                transporteSeleccionado === 'bus'
+                                  ? 'border-amber-500 bg-amber-500/10'
+                                  : 'border-stone-800 hover:border-stone-600'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="transporte"
+                                value="bus"
+                                checked={transporteSeleccionado === 'bus'}
+                                onChange={(e) =>
+                                  setTransporteSeleccionado(e.target.value)
+                                }
+                                className="appearance-none w-4 h-4 border border-stone-500 rounded-full checked:bg-amber-500 checked:border-amber-500 transition-all"
+                              />
+                              <span
+                                className={`${
+                                  transporteSeleccionado === 'bus'
+                                    ? 'text-white'
+                                    : 'text-stone-400 group-hover/option:text-stone-200'
+                                } transition-colors text-sm font-medium`}
+                              >
+                                Autobús
+                              </span>
+                            </label>
+                            <label
+                              className={`flex items-center gap-3 cursor-pointer group/option p-3 rounded-lg border transition-colors ${
+                                transporteSeleccionado === 'propio'
+                                  ? 'border-amber-500 bg-amber-500/10'
+                                  : 'border-stone-800 hover:border-stone-600'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="transporte"
+                                value="propio"
+                                checked={transporteSeleccionado === 'propio'}
+                                onChange={(e) =>
+                                  setTransporteSeleccionado(e.target.value)
+                                }
+                                className="appearance-none w-4 h-4 border border-stone-500 rounded-full checked:bg-amber-500 checked:border-amber-500 transition-all"
+                              />
+                              <span
+                                className={`${
+                                  transporteSeleccionado === 'propio'
+                                    ? 'text-white'
+                                    : 'text-stone-400 group-hover/option:text-stone-200'
+                                } transition-colors text-sm font-medium`}
+                              >
+                                Vehículo Propio
+                              </span>
+                            </label>
+                          </div>
+                          {transporteSeleccionado === 'bus' && (
+                            <div className="mt-4 p-4 md:p-5 bg-black/20 rounded-xl border border-white/10 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <label className="block text-[10px] uppercase tracking-[0.2em] text-stone-400 mb-3">
+                                ¿Recorrido Completo?
+                              </label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <label className="flex items-center gap-3 cursor-pointer group/sub p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                  <input
+                                    type="radio"
+                                    name="recorrido"
+                                    value="completo"
+                                    defaultChecked
+                                    className="appearance-none w-3.5 h-3.5 border border-stone-500 rounded-full checked:bg-amber-500 checked:border-amber-500 transition-all"
+                                  />
+                                  <span className="text-stone-400 group-hover/sub:text-stone-200 text-sm">
+                                    Sí (Ida y Vuelta)
+                                  </span>
+                                </label>
+                                <label className="flex items-center gap-3 cursor-pointer group/sub p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                  <input
+                                    type="radio"
+                                    name="recorrido"
+                                    value="parcial"
+                                    className="appearance-none w-3.5 h-3.5 border border-stone-500 rounded-full checked:bg-amber-500 checked:border-amber-500 transition-all"
+                                  />
+                                  <span className="text-stone-400 group-hover/sub:text-stone-200 text-sm">
+                                    No (Solo un tramo)
+                                  </span>
+                                </label>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div className="group relative">
                         <div className="flex justify-between items-end mb-2">
                           <label className="block text-[10px] uppercase tracking-[0.2em] text-stone-500 group-focus-within:text-amber-500 transition-colors">
