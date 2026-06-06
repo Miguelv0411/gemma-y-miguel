@@ -135,6 +135,11 @@
       <div id="seal-hotspot"></div>
     </div>
 
+    <!-- Etiqueta de audio añadida -->
+    <audio id="main-music" preload="auto">
+      <source src="https://files.catbox.moe/w7o6mg.mp3" type="audio/mpeg" />
+    </audio>
+
     <!-- En lugar del texto plano, preparamos el contenedor para React -->
     <main id="main-content" class="hidden">
       <div id="react-root"></div>
@@ -147,9 +152,33 @@
       const main = document.getElementById('main-content');
       const fakePoster = document.getElementById('fake-poster');
       const monogram = document.getElementById('dynamic-monogram');
+      const mainMusic = document.getElementById('main-music');
 
       let isOpened = false;
       let introFinished = false;
+      let musicFading = false;
+
+      // Función para desaparecer la música lentamente al hacer scroll
+      function handleMusicScroll() {
+        const scrollPos = main.scrollTop || window.scrollY;
+        if (scrollPos > 50 && !musicFading && mainMusic && !mainMusic.paused) {
+          musicFading = true;
+          let vol = mainMusic.volume;
+          const fade = setInterval(() => {
+            if (vol > 0.05) {
+              vol -= 0.05;
+              mainMusic.volume = vol;
+            } else {
+              clearInterval(fade);
+              mainMusic.pause();
+              mainMusic.volume = 0;
+            }
+          }, 100); // Tarda unos 2 segundos en bajar el volumen a cero
+        }
+      }
+
+      main.addEventListener('scroll', handleMusicScroll);
+      window.addEventListener('scroll', handleMusicScroll);
 
       function finishIntro() {
         if (introFinished) return;
@@ -167,6 +196,21 @@
         if (e && e.cancelable) e.preventDefault(); // Evita clics fantasma en móviles
         if (isOpened) return;
         isOpened = true;
+
+        // --- TRUCO INFALIBLE PARA AUDIO EN MÓVILES ---
+        if (mainMusic) {
+          mainMusic.muted = true; // Iniciamos en silencio (el móvil sí lo permite)
+          mainMusic.play().then(() => {
+            // Esperamos el delay de 5s y activamos el sonido
+            setTimeout(() => {
+              mainMusic.currentTime = 0;
+              mainMusic.muted = false; 
+            }, 5000); 
+          }).catch(error => {
+            console.warn("Audio bloqueado:", error);
+          });
+        }
+        // --------------------------------------------------
 
         seal.style.display = 'none';
         if (monogram) monogram.classList.add('monogram-fade-out');
@@ -840,6 +884,7 @@
         const [loadingData, setLoadingData] = useState(false);
         const [expandedAcc, setExpandedAcc] = useState(null);
         const [hasScrolled, setHasScrolled] = useState(false);
+        const [copied, setCopied] = useState(false);
 
         useEffect(() => {
           const scrollBox = document.getElementById('main-content');
@@ -2111,6 +2156,56 @@
                       </button>
                     </form>
                   )}
+                </FadeInSection>
+              </div>
+            </section>
+
+            <section id="regalo" className="py-16 md:py-24 px-4 bg-[#FAF9F6] relative overflow-hidden border-t border-stone-200">
+              <div className="max-w-3xl mx-auto relative z-10 text-center">
+                <FadeInSection>
+                  <div className="bg-white p-8 md:p-10 rounded-[2rem] shadow-sm border border-stone-100 max-w-xl mx-auto relative group hover:border-amber-200 transition-colors">
+                    <p className="text-stone-600 font-light text-base md:text-lg leading-relaxed mb-6">
+                      Vuestra compañía en este día tan especial es el mejor regalo que nos podéis hacer. <br className="hidden md:block" />
+                      Si además queréis ayudarnos en el comienzo de esta nueva etapa, os dejamos nuestro número de cuenta:
+                    </p>
+                    
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 bg-stone-50 p-4 md:p-5 rounded-2xl border border-stone-200 mb-6">
+                      <CreditCard size={20} className="text-stone-400" />
+                      <span className="font-mono text-stone-800 font-medium tracking-wider text-sm md:text-base selection:bg-amber-200">
+                        ES62 1465 0100 9117 5209 2939
+                      </span>
+                    </div>
+                    
+                    <button 
+                      onClick={() => {
+                        const textArea = document.createElement("textarea");
+                        textArea.value = "ES6214650100911752092939";
+                        // Evitar que haga scroll al añadirlo
+                        textArea.style.position = "fixed";
+                        textArea.style.top = "0";
+                        textArea.style.left = "0";
+                        textArea.style.opacity = "0";
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        try {
+                          document.execCommand('copy');
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        } catch (err) {
+                          console.error('No se pudo copiar el texto: ', err);
+                        }
+                        document.body.removeChild(textArea);
+                      }}
+                      className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] px-6 py-3 rounded-full transition-all border border-stone-200 text-stone-600 hover:border-amber-400 hover:text-amber-700 bg-white shadow-sm"
+                    >
+                      {copied ? (
+                        <><Check size={14} className="text-green-500"/> Copiado</>
+                      ) : (
+                        <>Copiar IBAN</>
+                      )}
+                    </button>
+                  </div>
                 </FadeInSection>
               </div>
             </section>
