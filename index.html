@@ -135,8 +135,8 @@
       <div id="seal-hotspot"></div>
     </div>
 
-    <!-- Etiqueta de audio añadida -->
-    <audio id="main-music" preload="auto">
+    <!-- Etiqueta de audio con propiedad crossorigin para Web Audio API en servidores remotos -->
+    <audio id="main-music" preload="auto" crossorigin="anonymous">
       <source src="https://files.catbox.moe/w7o6mg.mp3" type="audio/mpeg" />
     </audio>
 
@@ -158,27 +158,73 @@
       let introFinished = false;
       let musicFading = false;
 
-      // Función para desaparecer la música lentamente al hacer scroll
-      function handleMusicScroll() {
-        const scrollPos = main.scrollTop || window.scrollY;
-        if (scrollPos > 50 && !musicFading && mainMusic && !mainMusic.paused) {
-          musicFading = true;
-          let vol = mainMusic.volume;
-          const fade = setInterval(() => {
-            if (vol > 0.05) {
-              vol -= 0.05;
-              mainMusic.volume = vol;
-            } else {
-              clearInterval(fade);
-              mainMusic.pause();
-              mainMusic.volume = 0;
+      // Elementos de la API Web Audio para compatibilidad de volumen en móviles (iOS)
+      let audioCtx = null;
+      let gainNode = null;
+      let track = null;
+
+      function initWebAudio() {
+        if (audioCtx) return;
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          track = audioCtx.createMediaElementSource(mainMusic);
+          gainNode = audioCtx.createGain();
+          track.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+        } catch (e) {
+          console.warn("Web Audio API no iniciada, usando fallback estándar:", e);
+        }
+      }
+
+      // Función universal para apagar progresivamente la música (Compatible con iOS y PC)
+      window.fadeMusicOut = function() {
+        if (musicFading || !mainMusic || mainMusic.paused) return;
+        musicFading = true;
+
+        const fadeDuration = 2.0; // 2 segundos de fade-out suave
+
+        // Usamos Web Audio API si está disponible (obligatorio para el hardware de Apple/iOS)
+        if (audioCtx && gainNode) {
+          try {
+            if (audioCtx.state === 'suspended') {
+              audioCtx.resume();
             }
-          }, 100); // Tarda unos 2 segundos en bajar el volumen a cero
+            gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + fadeDuration);
+            setTimeout(() => {
+              mainMusic.pause();
+              mainMusic.muted = true;
+            }, fadeDuration * 1000);
+            return;
+          } catch (err) {
+            console.warn("Fallo en rampa Web Audio API, aplicando fallback:", err);
+          }
+        }
+
+        // Fallback tradicional por software (solo escritorio)
+        let vol = mainMusic.volume;
+        const fade = setInterval(() => {
+          if (vol > 0.05) {
+            vol -= 0.05;
+            mainMusic.volume = vol;
+          } else {
+            clearInterval(fade);
+            mainMusic.pause();
+            mainMusic.volume = 0;
+          }
+        }, 100);
+      }
+
+      // Controlamos el desvanecimiento de música exclusivamente con el scroll real del contenedor de la web
+      function handleMusicScroll() {
+        const scrollPos = main.scrollTop;
+        if (scrollPos > 50) {
+          window.fadeMusicOut();
         }
       }
 
       main.addEventListener('scroll', handleMusicScroll);
-      window.addEventListener('scroll', handleMusicScroll);
 
       function finishIntro() {
         if (introFinished) return;
@@ -197,6 +243,9 @@
         if (isOpened) return;
         isOpened = true;
 
+        // Inicializamos el motor de audio en el evento directo de interacción táctil
+        initWebAudio();
+
         // --- TRUCO INFALIBLE PARA AUDIO EN MÓVILES ---
         if (mainMusic) {
           mainMusic.muted = true; // Iniciamos en silencio (el móvil sí lo permite)
@@ -205,6 +254,7 @@
             setTimeout(() => {
               mainMusic.currentTime = 0;
               mainMusic.muted = false; 
+              if (gainNode) gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
             }, 5000); 
           }).catch(error => {
             console.warn("Audio bloqueado:", error);
@@ -960,6 +1010,11 @@
 
           if (!GOOGLE_SCRIPT_URL) {
             return;
+          }
+
+          // Desvanecer música de forma progresiva cuando se confirma la asistencia
+          if (window.fadeMusicOut) {
+            window.fadeMusicOut();
           }
 
           setFormStatus('loading');
