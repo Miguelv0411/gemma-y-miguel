@@ -136,7 +136,7 @@
     </div>
 
     <!-- Etiqueta de audio añadida -->
-    <audio id="main-music" preload="auto">
+    <audio id="main-music" preload="auto" crossorigin="anonymous">
       <source src="https://files.catbox.moe/w7o6mg.mp3" type="audio/mpeg" />
     </audio>
 
@@ -158,27 +158,83 @@
       let introFinished = false;
       let musicFading = false;
 
-      // Función para desaparecer la música lentamente al hacer scroll
-      function handleMusicScroll() {
-        const scrollPos = main.scrollTop || window.scrollY;
-        if (scrollPos > 50 && !musicFading && mainMusic && !mainMusic.paused) {
-          musicFading = true;
-          let vol = mainMusic.volume;
-          const fade = setInterval(() => {
-            if (vol > 0.05) {
-              vol -= 0.05;
-              mainMusic.volume = vol;
-            } else {
-              clearInterval(fade);
-              mainMusic.pause();
-              mainMusic.volume = 0;
+      // Elementos de la API Web Audio para compatibilidad de volumen en móviles (iOS)
+      let audioCtx = null;
+      let gainNode = null;
+      let track = null;
+
+      function initWebAudio() {
+        if (audioCtx) return;
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          track = audioCtx.createMediaElementSource(mainMusic);
+          gainNode = audioCtx.createGain();
+          track.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+        } catch (e) {
+          console.warn("Web Audio API no iniciada, usando fallback estándar:", e);
+        }
+      }
+
+      // Función universal para apagar progresivamente la música (Compatible con iOS y PC)
+      window.fadeMusicOut = function() {
+        if (musicFading || !mainMusic || mainMusic.paused) return;
+        musicFading = true;
+
+        const fadeDuration = 2.0; // 2 segundos de fade-out suave
+
+        // Usamos Web Audio API si está disponible (obligatorio para el hardware de Apple/iOS)
+        if (audioCtx && gainNode) {
+          try {
+            if (audioCtx.state === 'suspended') {
+              // Silenciamos el error si iOS ignora el resume (al venir del scroll), 
+              // así la rampa lineal se ejecutará sin interrumpir el código.
+              const resumePromise = audioCtx.resume();
+              if (resumePromise !== undefined) {
+                resumePromise.catch(e => console.warn("Resume ignorado por iOS, continuando rampa...", e));
+              }
             }
-          }, 100); // Tarda unos 2 segundos en bajar el volumen a cero
+            
+            gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + fadeDuration);
+            
+            setTimeout(() => {
+              mainMusic.pause();
+              mainMusic.muted = true;
+            }, fadeDuration * 1000);
+            
+            return; // ¡Salimos con éxito, el desvanecimiento funcionará!
+          } catch (err) {
+            console.warn("Fallo en rampa Web Audio API, aplicando fallback:", err);
+          }
+        }
+
+        // Fallback tradicional por software (para PC)
+        let vol = mainMusic.volume;
+        const fade = setInterval(() => {
+          if (vol > 0.05) {
+            vol -= 0.05;
+            try { mainMusic.volume = vol; } catch(e){}
+          } else {
+            clearInterval(fade);
+            mainMusic.pause();
+            try { mainMusic.volume = 0; } catch(e){}
+          }
+        }, 100);
+      }
+
+      // Controlamos el desvanecimiento de música exclusivamente con el scroll real del contenedor
+      function handleMusicScroll() {
+        const scrollPos = main.scrollTop;
+        // UMBRAL ALTO (300px): Evita que el zoom, clics o apariciones del teclado corten la música
+        if (scrollPos > 300) {
+          window.fadeMusicOut();
         }
       }
 
       main.addEventListener('scroll', handleMusicScroll);
-      window.addEventListener('scroll', handleMusicScroll);
 
       function finishIntro() {
         if (introFinished) return;
@@ -197,6 +253,18 @@
         if (isOpened) return;
         isOpened = true;
 
+        // Inicializamos el motor de audio en el evento directo de interacción táctil
+        initWebAudio();
+        
+        // --- DESBLOQUEO CRÍTICO PARA iOS ---
+        // Forzamos la activación del contexto en el mismo milisegundo del clic
+        if (audioCtx && audioCtx.state === 'suspended') {
+          const resumePromise = audioCtx.resume();
+          if (resumePromise !== undefined) {
+            resumePromise.catch(err => console.warn(err));
+          }
+        }
+
         // --- TRUCO INFALIBLE PARA AUDIO EN MÓVILES ---
         if (mainMusic) {
           mainMusic.muted = true; // Iniciamos en silencio (el móvil sí lo permite)
@@ -205,6 +273,9 @@
             setTimeout(() => {
               mainMusic.currentTime = 0;
               mainMusic.muted = false; 
+              if (gainNode && audioCtx) {
+                gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+              }
             }, 5000); 
           }).catch(error => {
             console.warn("Audio bloqueado:", error);
@@ -962,6 +1033,11 @@
             return;
           }
 
+          // Desvanecer música de forma progresiva cuando se confirma la asistencia
+          if (window.fadeMusicOut) {
+            window.fadeMusicOut();
+          }
+
           setFormStatus('loading');
           const formEl = e.target;
           const formData = new FormData(formEl);
@@ -976,6 +1052,7 @@
             data.append('invitados', '0');
             data.append('transporte', '-');
             data.append('recorrido', '-');
+            data.append('canciones', '-');
           } else if (transporteSeleccionado !== 'bus') {
             data.append('recorrido', '-');
           }
@@ -2132,6 +2209,21 @@
                           )}
                         </div>
                       )}
+
+                      {asistira === 'si' && (
+                        <div className="group">
+                          <label className="block text-[10px] uppercase tracking-[0.2em] text-stone-500 mb-2 group-focus-within:text-amber-500 transition-colors">
+                            Canciones imprescindibles *
+                          </label>
+                          <input
+                            name="canciones"
+                            required
+                            className="w-full bg-transparent border-b border-stone-700 py-3 text-base md:text-lg focus:outline-none focus:border-amber-500 transition-colors text-white placeholder-stone-700"
+                            placeholder="¿Qué canciones no pueden faltar en la fiesta?"
+                          />
+                        </div>
+                      )}
+
                       <div className="group relative">
                         <div className="flex justify-between items-end mb-2">
                           <label className="block text-[10px] uppercase tracking-[0.2em] text-stone-500 group-focus-within:text-amber-500 transition-colors">
@@ -2142,7 +2234,7 @@
                           name="observaciones"
                           rows="3"
                           className="w-full bg-transparent border-b border-stone-700 py-3 text-sm focus:outline-none focus:border-amber-500 transition-colors text-white resize-none"
-                          placeholder="Alergias, menú infantil... o una bonita dedicatoria."
+                          placeholder={asistira === 'si' ? "Alergias, menú infantil... o una bonita dedicatoria." : "¿Quieres dejarnos un mensaje o una bonita dedicatoria?"}
                         />
                       </div>
                       <button
