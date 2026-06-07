@@ -216,17 +216,20 @@
 
         // --- SISTEMA INFALIBLE DE DESBLOQUEO DE AUDIO PARA IOS/ANDROID/PC ---
         if (mainMusic) {
-          mainMusic.volume = 0;   // Aseguramos que no suene nada al principio
-          mainMusic.muted = true; // Silencio nativo (estrictamente necesario para iOS)
+          mainMusic.muted = true; // Silencio nativo inicial (estrictamente necesario para iOS y Android)
           mainMusic.play().then(() => {
-            // Dejamos la canción reproduciéndose en silencio en lugar de pausarla.
-            // Esto mantiene vivo el permiso de reproducción en los navegadores móviles.
+            // Dejamos la canción reproduciéndose en silencio para mantener vivo el permiso
             
             // Esperamos los 5 segundos exactos de tu coreografía
             setTimeout(() => {
+              // FIX PARA ANDROID: Pausar brevemente reconecta el stream de audio del altavoz
+              mainMusic.pause();
               mainMusic.currentTime = 0; // Volvemos al inicio de la canción
-              mainMusic.muted = false;   // Activamos el sonido nativo
-              try { mainMusic.volume = 1; } catch(e){} // Subimos el volumen (Android/PC)
+              mainMusic.muted = false;   // Activamos el sonido
+              try { mainMusic.volume = 1; } catch(e){} 
+              
+              // Reactivamos la reproducción ya con sonido real
+              mainMusic.play().catch(e => console.warn("Error en play diferido:", e));
             }, 5000); 
           }).catch(error => {
             console.warn("Autoplay inicial bloqueado por el dispositivo:", error);
