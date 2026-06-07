@@ -214,26 +214,32 @@
         if (isOpened) return;
         isOpened = true;
 
-        // --- SISTEMA INFALIBLE DE DESBLOQUEO DE AUDIO PARA IOS/ANDROID/PC ---
+        // --- SISTEMA INFALIBLE DE DESBLOQUEO DE AUDIO (DUAL: APPLE vs ANDROID) ---
         if (mainMusic) {
-          mainMusic.muted = true; // Silencio nativo inicial (estrictamente necesario para iOS y Android)
-          mainMusic.play().then(() => {
-            // Dejamos la canción reproduciéndose en silencio para mantener vivo el permiso
-            
-            // Esperamos los 5 segundos exactos de tu coreografía
-            setTimeout(() => {
-              // FIX PARA ANDROID: Pausar brevemente reconecta el stream de audio del altavoz
-              mainMusic.pause();
-              mainMusic.currentTime = 0; // Volvemos al inicio de la canción
-              mainMusic.muted = false;   // Activamos el sonido
-              try { mainMusic.volume = 1; } catch(e){} 
-              
-              // Reactivamos la reproducción ya con sonido real
-              mainMusic.play().catch(e => console.warn("Error en play diferido:", e));
-            }, 5000); 
-          }).catch(error => {
-            console.warn("Autoplay inicial bloqueado por el dispositivo:", error);
+          // Los dispositivos Apple ignoran el volumen, exigen "muted" para arrancar ocultos.
+          // En Android ocurre un bug si quitamos el "muted" en marcha, así que usamos volumen 0.
+          const isApple = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+          
+          if (isApple) {
+            mainMusic.muted = true;
+          } else {
+            mainMusic.volume = 0;
+            mainMusic.muted = false;
+          }
+
+          // 1. Iniciamos la carga/reproducción en el mismo instante del clic
+          mainMusic.play().catch(error => {
+            console.warn("Audio inicial bloqueado por el dispositivo:", error);
           });
+
+          // 2. Exactamente a los 5s (sincronizado con el vídeo), soltamos la música real
+          setTimeout(() => {
+            mainMusic.currentTime = 0; // Volvemos al inicio de la canción
+            if (isApple) {
+              mainMusic.muted = false; // En Apple quitamos el silenciador
+            }
+            try { mainMusic.volume = 1; } catch(e){} // En Android/PC subimos al 100%
+          }, 5000);
         }
         // --------------------------------------------------
 
