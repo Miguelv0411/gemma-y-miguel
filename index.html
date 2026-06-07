@@ -135,7 +135,7 @@
       <div id="seal-hotspot"></div>
     </div>
 
-    <!-- Etiqueta de audio añadida -->
+    <!-- Etiqueta de audio -->
     <audio id="main-music" preload="auto" crossorigin="anonymous">
       <source src="https://files.catbox.moe/w7o6mg.mp3" type="audio/mpeg" />
     </audio>
@@ -158,26 +158,11 @@
       let introFinished = false;
       let musicFading = false;
 
-      // Elementos de la API Web Audio para compatibilidad de volumen en móviles (iOS)
+      // Elementos de la API Web Audio
       let audioCtx = null;
       let gainNode = null;
       let track = null;
 
-      function initWebAudio() {
-        if (audioCtx) return;
-        try {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          track = audioCtx.createMediaElementSource(mainMusic);
-          gainNode = audioCtx.createGain();
-          track.connect(gainNode);
-          gainNode.connect(audioCtx.destination);
-          gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-        } catch (e) {
-          console.warn("Web Audio API no iniciada, usando fallback estándar:", e);
-        }
-      }
-
-      // Función universal para apagar progresivamente la música (Compatible con iOS y PC)
       window.fadeMusicOut = function() {
         if (musicFading || !mainMusic || mainMusic.paused) return;
         musicFading = true;
@@ -188,11 +173,9 @@
         if (audioCtx && gainNode) {
           try {
             if (audioCtx.state === 'suspended') {
-              // Silenciamos el error si iOS ignora el resume (al venir del scroll), 
-              // así la rampa lineal se ejecutará sin interrumpir el código.
               const resumePromise = audioCtx.resume();
               if (resumePromise !== undefined) {
-                resumePromise.catch(e => console.warn("Resume ignorado por iOS, continuando rampa...", e));
+                resumePromise.catch(e => console.warn(e));
               }
             }
             
@@ -202,12 +185,11 @@
             
             setTimeout(() => {
               mainMusic.pause();
-              mainMusic.muted = true;
             }, fadeDuration * 1000);
             
-            return; // ¡Salimos con éxito, el desvanecimiento funcionará!
+            return;
           } catch (err) {
-            console.warn("Fallo en rampa Web Audio API, aplicando fallback:", err);
+            console.warn(err);
           }
         }
 
@@ -253,28 +235,49 @@
         if (isOpened) return;
         isOpened = true;
 
-        // Inicializamos el motor de audio en el evento directo de interacción táctil
-        initWebAudio();
-        
-        // --- DESBLOQUEO CRÍTICO PARA iOS ---
-        // Forzamos la activación del contexto en el mismo milisegundo del clic
-        if (audioCtx && audioCtx.state === 'suspended') {
-          const resumePromise = audioCtx.resume();
-          if (resumePromise !== undefined) {
-            resumePromise.catch(err => console.warn(err));
+        // Desbloqueo robusto de Web Audio API para iOS en el momento del toque
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext && !audioCtx) {
+          try {
+            audioCtx = new AudioContext();
+            gainNode = audioCtx.createGain();
+            track = audioCtx.createMediaElementSource(mainMusic);
+            track.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            // Inicializamos el volumen a 0 (Silencio real mediante hardware)
+            gainNode.gain.value = 0; 
+            
+            // Truco forzado para despertar el audio de iOS (reproducir un sonido imperceptible)
+            const oscillator = audioCtx.createOscillator();
+            const silentGain = audioCtx.createGain();
+            silentGain.gain.value = 0;
+            oscillator.connect(silentGain);
+            silentGain.connect(audioCtx.destination);
+            oscillator.start(0);
+            oscillator.stop(0.01);
+            
+            audioCtx.resume();
+          } catch(err) {
+            console.warn("Web Audio API falló:", err);
           }
         }
 
         // --- TRUCO INFALIBLE PARA AUDIO EN MÓVILES ---
         if (mainMusic) {
-          mainMusic.muted = true; // Iniciamos en silencio (el móvil sí lo permite)
+          // NO usamos mainMusic.muted = true porque iOS bloquea quitarlo en un setTimeout
+          // Confiamos en gainNode.gain.value = 0 o en el volume = 0 tradicional
+          mainMusic.volume = 0; // Para PCs o si falla Web Audio
+          
           mainMusic.play().then(() => {
-            // Esperamos el delay de 5s y activamos el sonido
             setTimeout(() => {
               mainMusic.currentTime = 0;
-              mainMusic.muted = false; 
-              if (gainNode && audioCtx) {
-                gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+              if (audioCtx && gainNode) {
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                // Subimos el volumen suavemente (fade in de 0.5s) para evitar "clics" de sonido
+                gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.5);
+              } else {
+                mainMusic.volume = 1; // Fallback para escritorio
               }
             }, 5000); 
           }).catch(error => {
@@ -1244,6 +1247,7 @@
                               <th className="px-6 py-4 text-center">Estado</th>
                               <th className="px-6 py-4 text-center">Pax</th>
                               <th className="px-6 py-4">Transporte</th>
+                              <th className="px-6 py-4">Canciones</th>
                               <th className="px-6 py-4">Observaciones</th>
                             </tr>
                           </thead>
@@ -1298,7 +1302,10 @@
                                     <span className="text-stone-300">-</span>
                                   )}
                                 </td>
-                                <td className="px-6 py-4 text-stone-500 max-w-xs truncate">
+                                <td className="px-6 py-4 text-stone-500 max-w-xs truncate" title={rsvp.canciones}>
+                                  {rsvp.canciones || '-'}
+                                </td>
+                                <td className="px-6 py-4 text-stone-500 max-w-xs truncate" title={rsvp.observaciones}>
                                   {rsvp.observaciones || '-'}
                                 </td>
                               </tr>
@@ -2218,7 +2225,7 @@
                           <input
                             name="canciones"
                             required
-                            className="w-full bg-transparent border-b border-stone-700 py-3 text-base md:text-lg focus:outline-none focus:border-amber-500 transition-colors text-white placeholder-stone-700"
+                            className="w-full bg-transparent border-b border-stone-700 py-3 text-sm md:text-lg focus:outline-none focus:border-amber-500 transition-colors text-white placeholder-stone-700 placeholder:text-[10px] min-[360px]:placeholder:text-xs sm:placeholder:text-sm md:placeholder:text-base"
                             placeholder="¿Qué canciones no pueden faltar en la fiesta?"
                           />
                         </div>
