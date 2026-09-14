@@ -1342,14 +1342,14 @@
               <div
                 className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: `url('https://i.postimg.cc/XNw9G4mr/Gemini_Generated_Image_5rucma5rucma5ruc.png')`,
+                  backgroundImage: `url('img/portada.png')`,
                   filter: 'blur(40px)',
                 }}
               />
               <div
                 className="absolute inset-0 z-10 bg-contain bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: `url('https://i.postimg.cc/XNw9G4mr/Gemini_Generated_Image_5rucma5rucma5ruc.png')`,
+                  backgroundImage: `url('img/portada.png')`,
                 }}
               />
               <FlyingBirds />
@@ -1434,7 +1434,7 @@
                         </div>
                         <div>
                           <p className="font-bold text-stone-900 text-lg">
-                            12:00 Horas
+                            13:00 Horas
                           </p>
                           <p className="text-sm font-light">
                             Se ruega puntualidad
@@ -1506,7 +1506,7 @@
                         </div>
                         <div>
                           <p className="font-bold text-stone-900 text-lg">
-                            13:00 Horas
+                            14:30 Horas
                           </p>
                           <p className="text-sm font-light">
                             Hasta que el cuerpo aguante
@@ -1597,7 +1597,7 @@
                         <div className="absolute left-4 md:left-1/2 w-4 h-4 bg-white border-4 border-amber-300 rounded-full transform -translate-x-1/2 z-10 group-hover:scale-125 transition-transform duration-300 mt-1 md:mt-0"></div>
                         <div className="md:w-5/12 md:pl-12 w-full text-left order-1 md:order-3">
                           <span className="inline-block px-3 py-1 bg-white border border-stone-200 rounded-full text-[10px] md:text-xs font-bold tracking-widest text-amber-900 shadow-sm">
-                            11:30
+                            12:30
                           </span>
                         </div>
                       </div>
@@ -1613,7 +1613,7 @@
                         <div className="absolute left-4 md:left-1/2 w-4 h-4 bg-white border-4 border-stone-400 group-hover:border-amber-400 rounded-full transform -translate-x-1/2 z-10 group-hover:scale-125 transition-transform duration-300 mt-1 md:mt-0"></div>
                         <div className="md:w-5/12 md:pr-12 w-full text-left md:text-right order-1 md:order-3">
                           <span className="inline-block px-3 py-1 bg-white border border-stone-200 text-stone-600 rounded-full text-[10px] md:text-xs font-bold tracking-widest shadow-sm">
-                            12:00
+                            13:00
                           </span>
                         </div>
                       </div>
@@ -1631,7 +1631,7 @@
                         </div>
                         <div className="md:w-5/12 md:pl-12 w-full text-left order-1 md:order-3">
                           <span className="inline-block px-3 py-1 bg-white border border-stone-200 text-stone-600 rounded-full text-[10px] md:text-xs font-bold tracking-widest shadow-sm">
-                            13:00
+                            14:30
                           </span>
                         </div>
                       </div>
@@ -1649,7 +1649,7 @@
                         </div>
                         <div className="md:w-5/12 md:pr-12 w-full text-left md:text-right order-1 md:order-3">
                           <span className="inline-block px-3 py-1 bg-white border border-stone-200 text-stone-600 rounded-full text-[10px] md:text-xs font-bold tracking-widest shadow-sm">
-                            15:00
+                            16:00
                           </span>
                         </div>
                       </div>
@@ -1665,7 +1665,11 @@
                         <div className="absolute left-4 md:left-1/2 w-8 h-8 md:w-10 md:h-10 bg-stone-900 border border-stone-900 rounded-full flex items-center justify-center transform -translate-x-1/2 z-10 shadow-sm group-hover:scale-110 transition-transform mt-0">
                           <Music size={14} className="text-white" />
                         </div>
-                        <div className="md:w-5/12 md:pl-12 w-full text-left order-1 md:order-3"></div>
+                        <div className="md:w-5/12 md:pl-12 w-full text-left order-1 md:order-3">
+                          <span className="inline-block px-3 py-1 bg-white border border-stone-200 text-stone-600 rounded-full text-[10px] md:text-xs font-bold tracking-widest shadow-sm">
+                            18:30
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2244,14 +2248,31 @@
                       Si además queréis ayudarnos en el comienzo de esta nueva etapa, os dejamos nuestro número de cuenta:
                     </p>
                     
-                    <div className="flex items-center justify-center gap-2 sm:gap-4 bg-stone-50 p-3 sm:p-5 rounded-2xl border border-stone-200 mb-6">
+                    <div className="flex items-center justify-center gap-2 sm:gap-4 bg-stone-50 p-3 sm:p-5 rounded-2xl border border-stone-200 mb-4">
                       <CreditCard size={18} className="text-stone-400 flex-shrink-0" />
-                      <span className="font-mono text-stone-800 font-medium text-[11px] min-[360px]:text-xs min-[390px]:text-sm sm:text-base tracking-tighter min-[360px]:tracking-tight sm:tracking-wider whitespace-nowrap selection:bg-amber-200">
-                        ES62 1465 0100 9117 5209 2939
+                      <span className="flex flex-col items-start">
+                        <span className="text-[9px] min-[360px]:text-[10px] uppercase tracking-[0.2em] text-stone-400 font-semibold">
+                          IBAN
+                        </span>
+                        <span className="font-mono text-stone-800 font-medium text-[11px] min-[360px]:text-xs min-[390px]:text-sm sm:text-base tracking-tighter min-[360px]:tracking-tight sm:tracking-wider whitespace-nowrap selection:bg-amber-200">
+                          ES62 1465 0100 9117 5209 2939
+                        </span>
                       </span>
                     </div>
-                    
-                    <button 
+
+                    <div className="flex items-center justify-center gap-2 sm:gap-4 bg-stone-50 p-3 sm:p-5 rounded-2xl border border-stone-200 mb-6">
+                      <Users size={18} className="text-stone-400 flex-shrink-0" />
+                      <span className="flex flex-col items-start">
+                        <span className="text-[9px] min-[360px]:text-[10px] uppercase tracking-[0.2em] text-stone-400 font-semibold">
+                          Destinatario
+                        </span>
+                        <span className="font-mono text-stone-800 font-medium text-[11px] min-[360px]:text-xs min-[390px]:text-sm sm:text-base tracking-tighter min-[360px]:tracking-tight sm:tracking-wider whitespace-nowrap selection:bg-amber-200">
+                          Gemma Martin Cebolla
+                        </span>
+                      </span>
+                    </div>
+
+                    <button
                       onClick={() => {
                         const textArea = document.createElement("textarea");
                         textArea.value = "ES6214650100911752092939";
